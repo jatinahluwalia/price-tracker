@@ -39,9 +39,13 @@ export const scrapeAndStoreProduct = async (productUrl: string) => {
       { url: scrapedProduct.url },
       product,
       { upsert: true, new: true }
-    ).lean();
+    )
+      .select("-priceHistory._id -users._id")
+      .lean();
 
     revalidatePath(`/products/${newProduct._id}`);
+
+    return { ...newProduct, _id: newProduct._id.toString() };
   } catch (error: any) {
     throw new Error("Failed to create/update product: " + error.message);
   }
@@ -65,7 +69,9 @@ export const getAllProducts = async () => {
   try {
     connectToDB();
 
-    const products = await Product.find().lean().select("-priceHistory._id");
+    const products = await Product.find()
+      .select("-priceHistory._id -users._id")
+      .lean();
 
     const data = products.map((product) => ({
       ...product,
@@ -87,7 +93,7 @@ export const getSimilarProducts = async (id: string) => {
 
     const similarProducts = await Product.find({ _id: { $ne: id } })
       .limit(3)
-      .select("-priceHistory._id")
+      .select("-priceHistory._id -users._id")
       .lean();
 
     const data = similarProducts.map((product) => {
